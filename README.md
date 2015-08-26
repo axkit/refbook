@@ -75,7 +75,7 @@ POST|/refbook/:name/item/:id/erase|Delete rows from database table
 * **orderby**
   * n/a - ordered by primary key column. Default behavior.
   * column1,column2 - sort by listed order
-* result
+* **result**
  *  n/a - Returns JSON. Default behavoir. Content-Type: application/json. 
  *  options - Set of option items. Content-Type: text/html
  *  html - Simple html page, mostly for debug purpose. Content-Type: text/html
