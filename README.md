@@ -6,7 +6,7 @@ Planning & Requirement specification
 
 ## Concepts
 #### Reference Book
-Reference book is a plain table usually stores attributes of business objects, like {id, name}. Reference table can refer to  another reference table (M:1, 1:M). As instance: Towns->Countries->Currencies. 
+Reference book is a plain table usually used as lookup. Reference table can refer to  another reference table (M:1, 1:M). As instance: Towns->Countries->Currencies. 
 I recommend to count table as reference book when:
 * table has limited amount of rows
 * mostly, new rows are introduced by human
@@ -96,9 +96,16 @@ POST|/refbook/:name/item/:id/erase|Delete rows from database table
  * n/a - Returns refbook items in basic language
  * $$ - Returns refbook items in specified language (en, cz, ru, etc)
 
+### Configuration
+* Enable permission control (integration with aaa)
+* Run it's own http listener, ip:port
+* Template file for HTML page composing
+* Feature enabler. As instance disable support "?search=" or "enrich="
+* Database connection string if standalone deployment
+* Reference table names
+
 ### Integration
 Access control implemented by https://github.com/regorov/aaa 
-
 
 ## TODO
 Everything :)
