@@ -19,16 +19,17 @@ I recommend to count table as reference book when:
 PostgreSQL 9.x first. 
 
 #### Deployment 
-**Standalone**
+##### Standalone
 Standalone http server. Listens tcp port and processing requests. Recommended cases:
 * Page rendering on client side
 * Reference book items mostly stored in browser local storage
 * Standalone server side HTML page renders
 
-**Embedded**
+##### Embedded
 Statical linking into your Go application
-* Can work on separate tcp port (will required nginx in front)
-* Can add required routes into your existing http router. 
+* Can work on separate tcp port (requires reverse proxy in front)
+* Can add it's own routes into your existing http router and handle requests on the same port
+* Refbook features are directly available (without network overhead)
  
 ## Features
 ### JSON API
@@ -46,11 +47,15 @@ PUT |/refbook/:name/item/:id|Update item
 DELETE| /refbook/:name/item/:id|Mark as deleted
 POST|/refbook/:name/item/:id/erase|Delete rows from database table
 
+
 #### URL params for /refbook/:name/item
+
 * **cols**= 
   * main - Default behavior. Returns reasonable columns.
   * all - Enrich each refbook item with system columns (createdDt, modifiedDt, etc)
   * colname1,colname2,colname3 - Returns specified columns.
+* **search**=
+  * text - Filters resultset by text
 * **enrich**=
   * n/a - No enrich. Default behavior.
   * nameonly - If refbookA refers to refBookB, column refbookB.name added into resultset. 
