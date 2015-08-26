@@ -5,23 +5,33 @@ Easy access to your database reference tables. Standalone or embedded.
 Planning & Requirement specification
 
 ## Concepts
-
-#### RDBS supported
-PostgreSQL first. 
-
 #### Reference Book
-Reference book is a plain table typically stores attributes of business objects as set of pairs {id, name}. Reference tables can be more complicated and have references between each other as (M:1). As instance: Towns->Countries->Currencies.
+Reference book is a plain table usually stores attributes of business objects, like {id, name}. Reference table can refer to  another reference table (M:1, 1:M). As instance: Towns->Countries->Currencies. 
+I recommend to count table as reference book when:
+* table has limited amount of rows
+* mostly, new rows are introduced by human
+* table does not refer to tables with business objects
+* table requires only simple CRUD operations
+* table's text columns requires multilanuage support
 
-## Use cases
-#### Dealing with 
 
+#### RDBMS supported
+PostgreSQL 9.x first. 
+
+#### Deployment 
+**Standalone**
+Standalone http server. Listens tcp port and processing requests. Recommended cases:
+* Page rendering on client side
+* Reference book items mostly stored in browser local storage
+* Standalone server side HTML page renders
+
+**Embedded**
+Statical linking into your Go application
+* Can work on separate tcp port (will required nginx in front)
+* Can add required routes into your existing http router. 
+ 
 ## Features
-
-
 ### JSON API
-
-Content-Type: application/json
-
 
 Method|URL| Description
 ----|--------------|----------------------------------------------------------------------
@@ -61,9 +71,9 @@ POST|/refbook/:name/item/:id/erase|Delete rows from database table
   * n/a - ordered by primary key column. Default behavior.
   * column1,column2 - sort by listed order
 * result
- *  n/a - application/json. Default behavoir.
- *  options - set of option items
- *  html - simple html page, mostly for debug purpose.
+ *  n/a - Returns JSON. Default behavoir. Content-Type: application/json. 
+ *  options - Set of option items. Content-Type: text/html
+ *  html - Simple html page, mostly for debug purpose. Content-Type: text/html
 
 #### URL params for /refbook/:name/item/:id
 * **cols**= 
