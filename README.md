@@ -14,23 +14,25 @@ I recommend to count table as reference book when:
 * table requires only simple CRUD operations
 * table's text columns requires multilanuage support
 
-
 #### RDBMS supported
 PostgreSQL 9.x first. 
 
 #### Deployment 
 ##### Standalone
-Standalone http server. Listens tcp port and processing requests. Recommended cases:
-* Page rendering on client side
+Standalone http server. Listens tcp port and proces requests. Recommended cases:
+* Page renders on client side
 * Reference book items mostly stored in browser local storage
-* Standalone server side HTML page renders
+* Dedicated servers for server side HTML rendering are used
 
 ##### Embedded
-Statical linking into your Go application
-* Can work on separate tcp port (requires reverse proxy in front)
-* Can add it's own routes into your existing http router and handle requests on the same port
-* Refbook features are directly available (without network overhead)
- 
+Static linking into your Go application
+* Option 1: Work on separate tcp port (requires reverse proxy in front)
+* Option 2: Add it's own routes into your existing http router (port sharing)
+* If you have embedded HTML rendering, refbook features are available directly (without network overhead)
+
+#### Code Generation?
+TBD
+
 ## Features
 ### JSON API
 
