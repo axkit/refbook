@@ -30,7 +30,7 @@ PostgreSQL 9.6+.
   }
   fmt.Println(pt.Name(1))     // Individual
   fmt.Println(pt.IsExist(2))  // true
-  fmt.Println(pt.Name(3))     // ?  (as default response for if key not found). See var NotFoundName  
+  fmt.Println(pt.Name(3))     // returns var NotFoundName  
 ```
 ### Multi Language, Plain Reference Table
 ```
@@ -39,8 +39,9 @@ PostgreSQL 9.6+.
   //    name  jsonb not null,
   //    constraint party_types_pk primary key(id)
   // ); 
-  // insert into party_types(id, name) 
-  // values(1, '{"en" : "Individual", "ru": "Физ.лицо"}'::jsonb), (2, '{"en" : "Organzation", "ru": "Организация"}'::jsonb);
+  // insert into party_types(id, name)  values
+  // (1, '{"en" : "Individual", "ru": "Физ.лицо"}'::jsonb), 
+  // (2, '{"en" : "Organzation", "ru": "Организация"}'::jsonb);
   //
   // 
   db, err := sql.Open("postgres", constr)
@@ -54,32 +55,32 @@ PostgreSQL 9.6+.
 ```
 ### Single Language, Extended Reference Table
 ```
-  // create table event_types (
-  //    id          int4 not null,
-  //    code        text not null,
-  //    name        text not null,
-  //    is_critical bool not null default false,
-  //    constraint event_types_pk primary key(id)
-  // ); 
-  // insert into event_types(id, code, name, is_critical) values(1, 'CONLOST', 'Connection Lost', true), 
-  // (2, 'SERVERUP', 'Server up', false);
-  
-  type EventType struct {
-    ID          int
-    Code        string
-    Name        string
-    IsCritical  bool  
-  }
-  var ets []EventType
+// create table event_types (
+//    id          int4 not null,
+//    code        text not null,
+//    name        text not null,
+//    is_critical bool not null default false,
+//    constraint event_types_pk primary key(id)
+// ); 
+// insert into event_types(id, code, name, is_critical) values
+// (1, 'CONLOST', 'Connection Lost', true), 
+// (2, 'SERVERUP', 'Server up', false);
 
-  db, err := sql.Open("postgres", constr)
-  //
-  // read rows somehow to the slice et
-  //
-  et := refbook.New().LoadFromSlice(et, "ID", "Name")
-  
-  fmt.Println(et.Name(1)) // Individual
-  fmt.Println(et.Name(3)) // ? (as default response for if key not found)
+type EventType struct {
+  ID          int
+  Code        string
+  Name        string
+  IsCritical  bool  
+}
+var ets []EventType
+db, err := sql.Open("postgres", constr)
+//
+// read rows somehow to the slice et
+//
+et := refbook.New().LoadFromSlice(et, "ID", "Name")
+
+fmt.Println(et.Name(1)) // Individual
+fmt.Println(et.Name(3)) // ? (as default response for if key not found)
 ```
 ### Multi Language, Extended Reference Table
 ```

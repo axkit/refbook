@@ -32,6 +32,7 @@ type RefBooker interface {
 	Items() []RefBookItem
 	Hash() string
 	Add(id int, name string)
+	WriteJSON(w io.Writer) (int64, error)
 }
 
 type MultiLangRefBooker interface {
@@ -58,13 +59,15 @@ type MultiLangRefBook struct {
 	h   int64
 }
 
+var _ MultiLangRefBooker = (*MultiLangRefBook)(nil)
+
 func NewMLRefBook() *MultiLangRefBook {
 	return &MultiLangRefBook{id: make(map[int]struct{}), rb: make(map[string]*RefBook)}
 }
 
 // Lang returns RefBook corresponded to lang. If the lang is not found
 // it returns nil.
-func (ml *MultiLangRefBook) Lang(lang string) *RefBook {
+func (ml *MultiLangRefBook) Lang(lang string) RefBooker {
 	res := ml.rb[lang]
 	return res
 }
