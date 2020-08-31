@@ -1,116 +1,116 @@
-# refbook
-Easy access to your database reference tables. Standalone or embedded. 
+# refbook [![GoDoc](https://godoc.org/github.com/refbook/axkit?status.svg)](https://godoc.org/github.com/axkit/refbook) [![Build Status](https://travis-ci.org/axkit/refbook.svg?branch=master)](https://travis-ci.org/axkit/refbook) [![Coverage Status](https://coveralls.io/repos/github/axkit/refbook/badge.svg)](https://coveralls.io/github/axkit/refbook) [![Go Report Card](https://goreportcard.com/badge/github.com/axkit/refbook)](https://goreportcard.com/report/github.com/axkit/refbook)
 
-## Status
-Planning & Requirement specification
+Easy access to database reference tables 
 
-## Concepts
-#### Reference Book
-Reference book is a plain table usually used as lookup. Reference table can refer to  another reference table (M:1, 1:M). As instance: Towns->Countries->Currencies. 
-I recommend to count table as reference book when:
+## Concept
+Reference book is a plain table usually used as lookup. It has following characteristics:
 * table has limited amount of rows
-* mostly, new rows are introduced by human
-* table does not refer to tables with business objects
-* table requires only simple CRUD operations
-* table's text columns requires multilanuage support
-
-#### RDBMS supported
-PostgreSQL 9.x first. 
-
-#### Deployment 
-##### Standalone
-Standalone http server. Listens tcp port and proces requests. Recommended cases:
-* Page renders on client side
-* Reference book items mostly stored in browser local storage
-* Dedicated servers for server side HTML rendering are used
-
-##### Embedded
-Static linking into your Go application
-* Option 1: Work on separate tcp port (requires reverse proxy in front)
-* Option 2: Add it's own routes into your existing http router (port sharing)
-* If you have embedded HTML rendering, refbook features are available directly (without network overhead)
-
-#### Code Generation?
-TBD
-
-## Features
-### JSON API
-
-Method|URL| Description
-----|--------------|----------------------------------------------------------------------
-GET |/refbook/| Returns list of reference books available for user
-GET |/refbook/:name|Returns reference book metadata and list of available methods       
-GET |/refbook/:name/stat|Returns reference book statistics
-GET |/refbook/:name/item/    |Returns reference book items 
-GET |/refbook/:name/item/:id |Returns single reference book item
-GET |/refbook/:name/item/:id/exist|Returns HTTP OK 200 if row exists, 404 if not
-POST|/refbook/:name/item/|Add item
-PUT |/refbook/:name/item/:id|Update item
-DELETE| /refbook/:name/item/:id|Mark as deleted
-POST|/refbook/:name/item/:id/erase|Delete rows from database table
+* new rows are introduced quite seldom
+* primary key is an integer
+* name can be in a single language represented by TEXT or multilanguage represented by JSON
 
 
-#### URL params for /refbook/:name/item
+### RDBMS supported
+PostgreSQL 9.6+. 
 
-* **cols**= 
-  * main - Default behavior. Returns reasonable columns.
-  * all - Enrich each refbook item with system columns (createdDt, modifiedDt, etc)
-  * colname1,colname2,colname3 - Returns specified columns.
-* **search**=
-  * text - Filters resultset by text
-* **enrich**=
-  * n/a - No enrich. Default behavior.
-  * nameonly - If refbookA refers to refBookB, column refbookB.name added into resultset. 
-  * full     - If refbookA refers to refbookB, resultset item extends by refbookA {} object
-* **enrichdepth**=
-  * n/a, 0 - feature not used.
-  * N - parent references level (1, 2, 3...).
-* **lang**=
- * n/a - Returns items in basic language
- * $$ - Returns items in specified language (en, cz, ru, etc)
-* **from**=
- * n/a - Returns items from cache. Default behavior.
- * db  - Reload cache first. 
-* **deleted**
-  * n/a - deleted rows are hidden 
-  * y - include into a resultset the rows marked as deleted
-* **orderby**
-  * n/a - ordered by primary key column. Default behavior.
-  * column1,column2 - sort by listed order
-* **result**
- *  n/a - Returns JSON. Default behavoir. Content-Type: application/json. 
- *  options - Set of option items. Content-Type: text/html
- *  html - Simple html page, mostly for debug purpose. Content-Type: text/html
+## Examples
+### Single Language, Plain Reference Table
+```
+  // create table party_types (
+  //    id    int4 not null,
+  //    name  text not null,
+  //    constraint party_types_pk primary key(id)
+  // ); 
+  // insert into party_types(id, name) values(1, 'Individual'), (2, 'Organization');
+  
+  db, err := sql.Open("postgres", constr)
+  pt := refbook.New().LoadFromSQL(db, "party_types")
+  if pt.Err() != nil {
+    // 
+  }
+  fmt.Println(pt.Name(1))     // Individual
+  fmt.Println(pt.IsExist(2))  // true
+  fmt.Println(pt.Name(3))     // ?  (as default response for if key not found). See var NotFoundName  
+```
+### Multi Language, Plain Reference Table
+```
+  // create table party_types (
+  //    id    int4 not null,
+  //    name  jsonb not null,
+  //    constraint party_types_pk primary key(id)
+  // ); 
+  // insert into party_types(id, name) 
+  // values(1, '{"en" : "Individual", "ru": "Физ.лицо"}'::jsonb), (2, '{"en" : "Organzation", "ru": "Организация"}'::jsonb);
+  //
+  // 
+  db, err := sql.Open("postgres", constr)
+  pt := refbook.NewMLRefBook().LoadFromSQL(db, "party_types")
+  if pt.Err() != nil {
+    // 
+  }
+  fmt.Println(pt.Lang("ru").Name(1)) // Физ.лицо"
+  fmt.Println(pt.Lang("en").Name(2)) // Organzation"
+  fmt.Println(pt.Lang("en").Name(3)) // ? (as default response if key not found)
+```
+### Single Language, Extended Reference Table
+```
+  // create table event_types (
+  //    id          int4 not null,
+  //    code        text not null,
+  //    name        text not null,
+  //    is_critical bool not null default false,
+  //    constraint event_types_pk primary key(id)
+  // ); 
+  // insert into event_types(id, code, name, is_critical) values(1, 'CONLOST', 'Connection Lost', true), 
+  // (2, 'SERVERUP', 'Server up', false);
+  
+  type EventType struct {
+    ID          int
+    Code        string
+    Name        string
+    IsCritical  bool  
+  }
+  var ets []EventType
 
-#### URL params for /refbook/:name/item/:id
-* **cols**= 
-  * main - Default behavior. Returns reasonable columns.
-  * all - Enrich each refbook item with system columns (createdDt, modifiedDt, etc)
-  * colname1,colname2,colname3 - Returns specified columns.
-* **enrich**=
-  * n/a - No enrich. Default behavior.
-  * nameonly - If refbookA refers to refBookB, column refbookB.name added into resultset. 
-  * full     - If refbookA refers to refbookB, resultset item extends by refbookA {} object
-* **enrichdepth**=
-  * n/a, 0 - feature not used.
-  * N - parent references level (1, 2, 3...).
-* **lang**=
- * n/a - Returns refbook items in basic language
- * $$ - Returns refbook items in specified language (en, cz, ru, etc)
+  db, err := sql.Open("postgres", constr)
+  //
+  // read rows somehow to the slice et
+  //
+  et := refbook.New().LoadFromSlice(et, "ID", "Name")
+  
+  fmt.Println(et.Name(1)) // Individual
+  fmt.Println(et.Name(3)) // ? (as default response for if key not found)
+```
+### Multi Language, Extended Reference Table
+```
+  // create table event_types (
+  //    id          int4 not null,
+  //    code        text not null,
+  //    name        jsonb not null,
+  //    is_critical bool not null default false,
+  //    constraint event_types_pk primary key(id)
+  // ); 
+  // insert into event_types(id, code, name, is_critical) values
+  // (1, 'CONLOST', '{"en":"Connection lost", "ru": "Связь потеряна"}'::jsonb, true), 
+  // (2, 'SERVERUP', '{"en":"Server up", "ru": "Сервер поднят"}'::jsonb, false);
+  
+  type EventType struct {
+    ID          int
+    Code        string
+    Name        string
+    IsCritical  bool  
+  }
+  var ets []EventType
 
-### Configuration
-* Enable permission control (integration with aaa)
-* Run it's own http listener, ip:port
-* Template file for HTML page composing
-* Feature enabler. As instance disable support "?search=" or "enrich="
-* Database connection string if standalone deployment
-* Reference table names
+  db, err := sql.Open("postgres", constr)
+  //
+  // read rows somehow to the slice ets
+  //
+  et := refbook.NewMLRefBook().LoadFromSlice(ets, "ID", "Name")
+  
+  fmt.Println(et.Lang("ru").Name(1))  // Связь потеряна
+  fmt.Println(et.Lang("en").Name(2))  // Server up
+  fmt.Println(et.Lang("en").Name(3))  // ? 
 
-### Integration
-Access control implemented by https://github.com/regorov/aaa 
-
-## TODO
-Everything :)
-
-## License
-MIT
+  fmt.Println(et.IsExist(2))          // true
+```
