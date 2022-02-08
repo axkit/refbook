@@ -3,15 +3,12 @@
 Easy access to database reference tables 
 
 ## Concept
-Reference book is a plain table usually used as lookup. It has following characteristics:
+Reference book is a plain table usually used as lookup with following characteristics:
 * table has limited amount of rows
 * new rows are introduced quite seldom
 * primary key is an integer
-* name can be in a single language represented by TEXT or multilanguage represented by JSON
+* name can be in a single language - TEXT, or multi language - JSONB
 
-
-### RDBMS supported
-PostgreSQL 9.6+. 
 
 ## Examples
 ### Single Language, Plain Reference Table

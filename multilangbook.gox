@@ -1,0 +1,168 @@
+package refbook
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"reflect"
+)
+
+type MultiLangBook struct {
+	defaultLangCode LangCode
+	bi              []LangCode // index in b of language hash
+	book            []*Book
+}
+
+func (b *MultiLangBook) languageIndex(lang string) int {
+	lc := ToLangCode(lang)
+	if lc == 0 {
+		return 0
+	}
+	for i := range b.bi {
+		if b.bi[i] == lc {
+			return i
+		}
+	}
+	return 0
+}
+
+// Book returns pointer to the reference book associated with lang.
+// Returns pointer to the book associates with default language if
+// lang not found.
+func (b *MultiLangBook) Book(lang string) *Book {
+	idx := b.languageIndex(lang)
+	return b.book[idx]
+}
+
+// Name return name by id
+func (b *MultiLangBook) Name(lc LangCode, id int) string {
+	for i := range b.bi {
+		if b.bi[i] != lc {
+			continue
+		}
+
+		res, ok := b.book[i].name(id)
+		if !ok {
+			res, ok = b.book[0].name(id)
+		}
+		if ok {
+			return res
+		}
+		break
+	}
+	return NotFoundName
+}
+
+//var _ MultiLangRefBooker = (*MultiLangBook)(nil)
+
+func NewMultiLangBook(cfg Config) *MultiLangBook {
+	lc := ToLangCode(cfg.DefaultLanguage)
+	if lc == 0 {
+		panic("invalid cfg.DefaultLanguage: " + cfg.DefaultLanguage)
+	}
+
+	if len(cfg.Languages) == 0 {
+		panic("empty cfg.Languages")
+	}
+
+	b := MultiLangBook{
+		defaultLangCode: lc,
+		bi:              []LangCode{lc},
+		book:            []*Book{nil},
+	}
+
+	for i := range cfg.Languages {
+		lc := ToLangCode(cfg.Languages[i])
+		if lc == 0 {
+			panic("invalid cfg.Languages[] value: " + cfg.Languages[i])
+		}
+		b.bi = append(b.bi, lc)
+		sb := NewBook()
+		b.book = append(b.book, sb)
+		if cfg.DefaultLanguage == cfg.Languages[i] {
+			b.book[0] = sb
+		}
+	}
+	return &b
+}
+
+func (b *MultiLangBook) IsExist(id int) bool {
+	return b.book[0].IsExist(id)
+}
+
+func (b *MultiLangBook) Len() int {
+	return b.book[0].Len()
+}
+
+func (ml *MultiLangBook) AddRows(rows []MultiLangItem) {
+	for i := range rows {
+		ml.AddRow(rows[i])
+	}
+}
+
+func (b *MultiLangBook) AddRow(row MultiLangItem) {
+
+	addedToDefault := false
+	for lang, name := range row.Name {
+		lc := ToLangCode(lang)
+		if lc == 0 {
+			panic(lang)
+		}
+		for i := 1; i < len(b.bi); i++ {
+			if b.bi[i] != lc {
+				continue
+			}
+
+			b.book[i].Set(row.ID, name)
+			if lc == b.defaultLangCode {
+				addedToDefault = true
+			}
+			break
+		}
+	}
+
+	if !addedToDefault {
+		b.book[0].Set(row.ID, NotFoundName)
+	}
+}
+
+func (b *MultiLangBook) LoadFromSlice(src interface{}, attrid string, attrname string) error {
+
+	if src == nil {
+		return nil
+	}
+
+	s := reflect.ValueOf(src)
+	if s.Kind() == reflect.Ptr {
+		s = s.Elem()
+	}
+
+	if s.Kind() != reflect.Slice {
+		return errors.New("expected argument as reference to slice")
+	}
+
+	if s.Len() == 0 {
+		return nil
+	}
+
+	if !s.Index(0).FieldByName(attrid).IsValid() {
+		return fmt.Errorf("attribute %s not found", attrid)
+	}
+
+	if !s.Index(0).FieldByName(attrname).IsValid() {
+		return fmt.Errorf("attribute %s not found", attrname)
+	}
+
+	for i := 0; i < s.Len(); i++ {
+		item := s.Index(i)
+
+		m := map[string]string{}
+		err := json.Unmarshal(item.FieldByName(attrname).Bytes(), &m)
+		if err != nil {
+			return err
+		}
+
+		b.AddRow(MultiLangItem{ID: int(item.FieldByName(attrid).Int()), Name: m})
+	}
+	return nil
+}
