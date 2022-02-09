@@ -18,12 +18,14 @@ type FlexBook struct {
 	mux             sync.RWMutex
 	bi              []LangCode // index in b of language hash
 	book            []*Book
+	tableName       string
 }
 
 // Option holds FlexBook configuration.
 type Option struct {
 	lang         string
 	isConcurrent bool
+	tableName    string
 }
 
 // WithDefaultLang replaces global default language.
@@ -37,6 +39,11 @@ func WithDefaultLang(lang string) func(o *Option) {
 func WithThreadSafe() func(o *Option) {
 	return func(o *Option) {
 		o.isConcurrent = true
+	}
+}
+func WithTablename(tableName string) func(o *Option) {
+	return func(o *Option) {
+		o.tableName = tableName
 	}
 }
 
@@ -62,6 +69,7 @@ func NewFlexBook(f ...func(*Option)) *FlexBook {
 		b.defaultLangCode = lc
 		b.bi[0] = lc
 	}
+	b.tableName = o.tableName
 
 	if o.isConcurrent {
 		b.isConcurrent = o.isConcurrent
@@ -72,6 +80,10 @@ func NewFlexBook(f ...func(*Option)) *FlexBook {
 // SetThreadSafe sets flag what wraps access to internals by mutex.
 func (b *FlexBook) SetThreadSafe() {
 	b.isConcurrent = true
+}
+
+func (b *FlexBook) TableName() string {
+	return b.tableName
 }
 
 // Book returns pointer to the reference book associated with lang.
@@ -374,6 +386,16 @@ func (b *FlexBook) Parse(src []byte) error {
 
 		b.AddItems(items)
 	}
+	return nil
+}
 
+func (b *FlexBook) Optimize() error {
+	b.mux.RLock()
+	defer b.mux.RUnlock()
+	for i := range b.book {
+		if err := b.book[i].optimize(); err != nil {
+			return err
+		}
+	}
 	return nil
 }

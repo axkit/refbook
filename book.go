@@ -19,7 +19,7 @@ type Book struct {
 	uItems       []Item // name in upper case.
 	jsonInput    struct {
 		Items []Item `json:"items"`
-		Hash  uint64 `json:"hash" hash:"ignore"`
+		Hash  uint64 `json:"hash,string" hash:"ignore"`
 	}
 	isCompileRequired bool
 	jsonCompiled      []byte
@@ -289,6 +289,10 @@ func (b *Book) Parse(buf []byte) error {
 	}
 
 	return b.optimize()
+}
+
+func (b *Book) MarshalJSON() ([]byte, error) {
+	return b.JSON(), nil
 }
 
 /*
